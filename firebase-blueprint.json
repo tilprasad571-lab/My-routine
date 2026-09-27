@@ -1,0 +1,508 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account profile, preferences, and Pro subscription state.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique Firebase user identifier."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Display name of the user."
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 150,
+          "format": "email",
+          "description": "Email address of the user."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "admin"],
+          "description": "Access control role."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended"],
+          "description": "Account status."
+        },
+        "isPro": {
+          "type": "boolean",
+          "description": "Whether the user has an active Rs.99/month Pro subscription."
+        },
+        "proExpiry": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "ISO date string for Pro plan expiration."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "ne"],
+          "description": "Preferred UI language (English or Nepali)."
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark"],
+          "description": "Preferred color theme."
+        },
+        "notificationsEnabled": {
+          "type": "boolean",
+          "description": "Whether routine reminder notifications are enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of account creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update."
+        }
+      },
+      "required": [
+        "uid",
+        "name",
+        "email",
+        "role",
+        "status",
+        "isPro",
+        "proExpiry",
+        "language",
+        "theme",
+        "notificationsEnabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator lookup record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "Routine": {
+      "title": "Routine",
+      "description": "A scheduled daily or recurring routine item owned by a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "time": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 10,
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "icon": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "reminderOffset": {
+          "type": "integer",
+          "enum": [0, 5, 10, 15]
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "repeatType": {
+          "type": "string",
+          "enum": ["today", "everyday", "weekdays", "custom"]
+        },
+        "customDays": {
+          "type": "array"
+        },
+        "targetDate": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "time",
+        "category",
+        "icon",
+        "reminderOffset",
+        "duration",
+        "repeatType",
+        "customDays",
+        "targetDate",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoutineLog": {
+      "title": "RoutineLog",
+      "description": "Daily execution status record (done, skipped, snoozed, missed) for a routine on a specific date.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "routineId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["done", "skipped", "snoozed", "missed"]
+        },
+        "snoozedUntil": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "routineId",
+        "date",
+        "status",
+        "snoozedUntil",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "A Pro user habit target with start/end dates and tracked progress.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "targetDays": {
+          "type": "integer"
+        },
+        "completedDays": {
+          "type": "integer"
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "endDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "category",
+        "targetDays",
+        "completedDays",
+        "startDate",
+        "endDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoutineTemplate": {
+      "title": "RoutineTemplate",
+      "description": "Saved reusable routine schedule template for Pro users.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "itemsCount": {
+          "type": "integer"
+        },
+        "itemsSummary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "description",
+        "itemsCount",
+        "itemsSummary",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProUpgradeRequest": {
+      "title": "ProUpgradeRequest",
+      "description": "Manual Rs.99/month Pro subscription verification request.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "userName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "referenceId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 60,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "senderInfo": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "userEmail",
+        "userName",
+        "referenceId",
+        "paymentMethod",
+        "senderInfo",
+        "amount",
+        "status",
+        "adminNotes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdBanner": {
+      "title": "AdBanner",
+      "description": "Advertisement placement configuration managed by Admin.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "type": {
+          "type": "string",
+          "enum": ["manual", "adsense"]
+        },
+        "placement": {
+          "type": "string",
+          "enum": ["home_top", "home_bottom", "planner_bottom", "reports_bottom"]
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "targetUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "adSenseSlot": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "endDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "title",
+        "type",
+        "placement",
+        "imageUrl",
+        "targetUrl",
+        "adSenseSlot",
+        "active",
+        "startDate",
+        "endDate",
+        "priority",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile documents restricted strictly to the owner or admin."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Administrator lookup documents."
+    },
+    "/routines/{routineId}": {
+      "schema": { "$ref": "#/entities/Routine" },
+      "description": "User-created daily and recurring routine activities."
+    },
+    "/routineLogs/{logId}": {
+      "schema": { "$ref": "#/entities/RoutineLog" },
+      "description": "Daily completion, skip, snooze, and missed status logs for routines."
+    },
+    "/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Pro user habit goals and progress counters."
+    },
+    "/templates/{templateId}": {
+      "schema": { "$ref": "#/entities/RoutineTemplate" },
+      "description": "Saved reusable routine templates for Pro users."
+    },
+    "/proRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/ProUpgradeRequest" },
+      "description": "Manual Rs.99/month Pro upgrade verification requests."
+    },
+    "/ads/{adId}": {
+      "schema": { "$ref": "#/entities/AdBanner" },
+      "description": "Admin-managed banner and AdSense configurations."
+    }
+  }
+}

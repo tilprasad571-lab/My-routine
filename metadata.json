@@ -1,0 +1,6 @@
+{
+  "name": "Mero Routine",
+  "description": "Plan Your Day. Build Your Life. (दिन योजना बनाऔँ, बानी सुधारौँ।) — Mobile-first daily routine planner, habit tracker, and reminder web app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

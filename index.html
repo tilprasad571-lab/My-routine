@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Mero Routine — Plan Your Day. Build Your Life.</title>
+    <meta name="description" content="Mero Routine (दिन योजना बनाऔँ, बानी सुधारौँ।) — Create your daily routine from morning to night, receive timely reminders, track habits, and build consistent life goals." />
+    <meta property="og:title" content="Mero Routine — Plan Your Day. Build Your Life." />
+    <meta property="og:description" content="Create your daily routine from morning to night, receive reminders, track daily progress, and build consistent habits." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/mero-routine-logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/mero-routine-logo.png" />
+    <meta name="theme-color" content="#0E2A80" />
+    <meta name="application-name" content="Mero Routine" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mero Routine" />
+    <link rel="icon" type="image/svg+xml" href="/mero-routine-logo.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-startup-image" href="/apple-splash-1170x2532.png" />
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+    <script>
+      try {
+        if (localStorage.getItem('mero_routine_theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+      window.__deferredPwaPrompt = null;
+      window.__meroDeferredPrompt = null;
+      try {
+        if (
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.matchMedia('(display-mode: minimal-ui)').matches ||
+          window.navigator.standalone === true ||
+          (document.referrer && document.referrer.indexOf('android-app://') !== -1)
+        ) {
+          localStorage.setItem('mero_routine_pwa_installed_v1', 'true');
+        }
+      } catch (e) {}
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+          .catch(function () {});
+      }
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredPwaPrompt = e;
+        window.__meroDeferredPrompt = e;
+        try {
+          if (
+            !window.matchMedia('(display-mode: standalone)').matches &&
+            !window.matchMedia('(display-mode: minimal-ui)').matches &&
+            window.navigator.standalone !== true
+          ) {
+            localStorage.removeItem('mero_routine_pwa_installed_v1');
+          }
+        } catch (err) {}
+        window.dispatchEvent(new Event('mero-pwa-prompt-ready'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__deferredPwaPrompt = null;
+        window.__meroDeferredPrompt = null;
+        try {
+          localStorage.setItem('mero_routine_pwa_installed_v1', 'true');
+        } catch (e) {}
+        window.dispatchEvent(new Event('mero-pwa-installed'));
+      });
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-teal-600 selection:text-white overflow-x-hidden">
+    <div id="root">
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+        <div style="text-align:center;">
+          <img src="/mero-routine-logo.svg" alt="Mero Routine" width="88" height="88" style="width:88px;height:88px;object-fit:contain;display:block;margin:0 auto 12px;" />
+          <p style="font-family:system-ui,-apple-system,sans-serif;font-size:14px;font-weight:600;color:#334155;margin:0;">Mero Routine</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

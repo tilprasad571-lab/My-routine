@@ -1,0 +1,514 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'tech4u571@gmail.com' ||
+        request.auth.token.email == 'til.prasad571@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    // 3. Entity Validation Blueprints (No existing() or diff() inside helpers)
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+        'uid', 'name', 'email', 'role', 'status',
+        'isPro', 'proExpiry', 'language', 'theme',
+        'notificationsEnabled', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'name', 'email', 'role', 'status',
+        'isPro', 'proExpiry', 'language', 'theme',
+        'notificationsEnabled', 'createdAt', 'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+      data.role is string && data.role.size() <= 10 && (data.role == 'user' || data.role == 'admin') &&
+      data.status is string && data.status.size() <= 15 && (data.status == 'active' || data.status == 'suspended') &&
+      data.isPro is bool &&
+      data.proExpiry is string && data.proExpiry.size() <= 40 &&
+      data.language is string && data.language.size() == 2 && (data.language == 'en' || data.language == 'ne') &&
+      data.theme is string && data.theme.size() <= 10 && (data.theme == 'light' || data.theme == 'dark') &&
+      data.notificationsEnabled is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidRoutine(data) {
+      return data.keys().hasAll([
+        'userId', 'title', 'time', 'category', 'icon',
+        'reminderOffset', 'duration', 'repeatType', 'customDays',
+        'targetDate', 'notes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'title', 'time', 'category', 'icon',
+        'reminderOffset', 'duration', 'repeatType', 'customDays',
+        'targetDate', 'notes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+      data.time is string && data.time.size() >= 4 && data.time.size() <= 10 && data.time.matches('^([01]?[0-9]|2[0-3]):[0-5][0-9]$') &&
+      data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+      data.icon is string && data.icon.size() >= 1 && data.icon.size() <= 20 &&
+      data.reminderOffset is int && (data.reminderOffset == 0 || data.reminderOffset == 5 || data.reminderOffset == 10 || data.reminderOffset == 15) &&
+      data.duration is int && data.duration >= 0 && data.duration <= 1440 &&
+      data.repeatType is string && data.repeatType.size() <= 15 && (
+        data.repeatType == 'today' || data.repeatType == 'everyday' || data.repeatType == 'weekdays' || data.repeatType == 'custom'
+      ) &&
+      data.customDays is list && data.customDays.size() <= 7 && (
+        data.customDays.size() == 0 || (data.customDays[0] is int && data.customDays[0] >= 0 && data.customDays[0] <= 6)
+      ) &&
+      data.targetDate is string && data.targetDate.size() <= 20 &&
+      data.notes is string && data.notes.size() <= 500 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidRoutineLog(data) {
+      return data.keys().hasAll([
+        'userId', 'routineId', 'date', 'status', 'snoozedUntil', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'routineId', 'date', 'status', 'snoozedUntil', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.routineId is string && data.routineId.size() >= 1 && data.routineId.size() <= 128 && data.routineId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.date is string && data.date.size() == 10 && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+      data.status is string && data.status.size() <= 12 && (
+        data.status == 'done' || data.status == 'skipped' || data.status == 'snoozed' || data.status == 'missed'
+      ) &&
+      data.snoozedUntil is string && data.snoozedUntil.size() <= 30 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidGoal(data) {
+      return data.keys().hasAll([
+        'userId', 'title', 'category', 'targetDays', 'completedDays',
+        'startDate', 'endDate', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'title', 'category', 'targetDays', 'completedDays',
+        'startDate', 'endDate', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+      data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+      data.targetDays is int && data.targetDays >= 1 && data.targetDays <= 365 &&
+      data.completedDays is int && data.completedDays >= 0 && data.completedDays <= 365 &&
+      data.startDate is string && data.startDate.size() == 10 && data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+      data.endDate is string && data.endDate.size() == 10 && data.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidRoutineTemplate(data) {
+      return data.keys().hasAll([
+        'userId', 'name', 'description', 'itemsCount', 'itemsSummary', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'name', 'description', 'itemsCount', 'itemsSummary', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+      data.description is string && data.description.size() <= 250 &&
+      data.itemsCount is int && data.itemsCount >= 1 && data.itemsCount <= 50 &&
+      data.itemsSummary is string && data.itemsSummary.size() <= 2000 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidProUpgradeRequest(data) {
+      return data.keys().hasAll([
+        'userId', 'userEmail', 'userName', 'referenceId',
+        'paymentMethod', 'senderInfo', 'amount', 'status',
+        'adminNotes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'userEmail', 'userName', 'referenceId',
+        'paymentMethod', 'senderInfo', 'amount', 'status',
+        'adminNotes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 150 &&
+      data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 100 &&
+      data.referenceId is string && data.referenceId.size() >= 4 && data.referenceId.size() <= 60 && data.referenceId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.paymentMethod is string && data.paymentMethod.size() >= 2 && data.paymentMethod.size() <= 40 &&
+      data.senderInfo is string && data.senderInfo.size() >= 2 && data.senderInfo.size() <= 120 &&
+      data.amount is int && data.amount == 99 &&
+      data.status is string && data.status.size() <= 12 && (
+        data.status == 'pending' || data.status == 'approved' || data.status == 'rejected'
+      ) &&
+      data.adminNotes is string && data.adminNotes.size() <= 500 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAdBanner(data) {
+      return data.keys().hasAll([
+        'title', 'type', 'placement', 'imageUrl', 'targetUrl',
+        'adSenseSlot', 'active', 'startDate', 'endDate',
+        'priority', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'title', 'type', 'placement', 'imageUrl', 'targetUrl',
+        'adSenseSlot', 'active', 'startDate', 'endDate',
+        'priority', 'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+      data.type is string && data.type.size() <= 12 && (data.type == 'manual' || data.type == 'adsense') &&
+      data.placement is string && data.placement.size() <= 20 && (
+        data.placement == 'home_top' || data.placement == 'home_bottom' ||
+        data.placement == 'planner_bottom' || data.placement == 'reports_bottom'
+      ) &&
+      data.imageUrl is string && data.imageUrl.size() <= 500 &&
+      data.targetUrl is string && data.targetUrl.size() <= 500 &&
+      data.adSenseSlot is string && data.adSenseSlot.size() <= 120 &&
+      data.active is bool &&
+      data.startDate is string && data.startDate.size() == 10 && data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+      data.endDate is string && data.endDate.size() == 10 && data.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+      data.priority is int && data.priority >= 1 && data.priority <= 100 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // 4. Collection Rules
+
+    // /users/{userId} — PII Isolated to Owner or Admin
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.uid == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == userId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time && (
+          (
+            isOwner(userId) &&
+            incoming().email == request.auth.token.email &&
+            incoming().role == 'user' &&
+            incoming().status == 'active' &&
+            incoming().isPro == false &&
+            incoming().proExpiry == ''
+          ) ||
+          isAdmin()
+        );
+
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Owner updates safe personal preferences only
+          (
+            isOwner(userId) &&
+            existing().status == 'active' &&
+            incoming().role == existing().role &&
+            incoming().status == existing().status &&
+            incoming().isPro == existing().isPro &&
+            incoming().proExpiry == existing().proExpiry &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'language', 'theme', 'notificationsEnabled', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Admin manages user status, role, or Pro subscription
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'role', 'status', 'isPro', 'proExpiry',
+              'language', 'theme', 'notificationsEnabled', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(userId) && isAdmin();
+    }
+
+    // /admins/{adminId}
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isVerifiedUser() && request.auth.token.email == 'tech4u571@gmail.com';
+      allow create: if isVerifiedUser() &&
+        isValidId(adminId) &&
+        isValidAdminRecord(incoming()) &&
+        incoming().uid == adminId &&
+        incoming().createdAt == request.time &&
+        isAdmin();
+      allow update: if false;
+      allow delete: if isVerifiedUser() && isValidId(adminId) && isAdmin();
+    }
+
+    // /routines/{routineId}
+    match /routines/{routineId} {
+      allow get: if isVerifiedUser() && isValidId(routineId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com' ||
+        request.auth.token.email == 'til.prasad571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(routineId) &&
+        isValidRoutine(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(incoming().userId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(routineId) &&
+        isValidRoutine(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'time', 'category', 'icon', 'reminderOffset',
+              'duration', 'repeatType', 'customDays', 'targetDate',
+              'notes', 'updatedAt'
+            ])
+          ) ||
+          isAdmin()
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(routineId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // /routineLogs/{logId}
+    match /routineLogs/{logId} {
+      allow get: if isVerifiedUser() && isValidId(logId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com' ||
+        request.auth.token.email == 'til.prasad571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(logId) &&
+        isValidRoutineLog(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/routines/$(incoming().routineId)) &&
+        get(/databases/$(database)/documents/routines/$(incoming().routineId)).data.userId == request.auth.uid;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(logId) &&
+        isValidRoutineLog(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().routineId == existing().routineId &&
+        incoming().date == existing().date &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'snoozedUntil', 'updatedAt'
+            ])
+          ) ||
+          isAdmin()
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(logId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // /goals/{goalId}
+    match /goals/{goalId} {
+      allow get: if isVerifiedUser() && isValidId(goalId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com' ||
+        request.auth.token.email == 'til.prasad571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(goalId) &&
+        isValidGoal(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(incoming().userId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(goalId) &&
+        isValidGoal(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'category', 'targetDays', 'completedDays',
+              'startDate', 'endDate', 'updatedAt'
+            ])
+          ) ||
+          isAdmin()
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(goalId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // /templates/{templateId}
+    match /templates/{templateId} {
+      allow get: if isVerifiedUser() && isValidId(templateId) && (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com' ||
+        request.auth.token.email == 'til.prasad571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(templateId) &&
+        isValidRoutineTemplate(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(incoming().userId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(templateId) &&
+        isValidRoutineTemplate(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'description', 'itemsCount', 'itemsSummary', 'updatedAt'
+            ])
+          ) ||
+          isAdmin()
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(templateId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // /proRequests/{requestId} — Terminal State Locked for Non-Admins
+    match /proRequests/{requestId} {
+      allow get: if isVerifiedUser() && isValidId(requestId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid ||
+        request.auth.token.email == 'tech4u571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(requestId) &&
+        isValidProUpgradeRequest(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().userEmail == request.auth.token.email &&
+        incoming().status == 'pending' &&
+        incoming().adminNotes == '' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(incoming().userId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(requestId) &&
+        isValidProUpgradeRequest(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().userEmail == existing().userEmail &&
+        incoming().referenceId == existing().referenceId &&
+        incoming().amount == existing().amount &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Owner updates senderInfo ONLY while status is still 'pending' (Terminal State Lock)
+          (
+            existing().userId == request.auth.uid &&
+            existing().status == 'pending' &&
+            incoming().status == 'pending' &&
+            incoming().adminNotes == existing().adminNotes &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'paymentMethod', 'senderInfo', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Admin approves or rejects request
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'adminNotes', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(requestId) && isAdmin();
+    }
+
+    // /ads/{adId} — Managed strictly by Admin
+    match /ads/{adId} {
+      allow get: if isVerifiedUser() && isValidId(adId) && (existing().active == true || isAdmin());
+      allow list: if isVerifiedUser() && (
+        resource.data.active == true ||
+        request.auth.token.email == 'tech4u571@gmail.com'
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(adId) &&
+        isValidAdBanner(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerifiedUser() &&
+        isValidId(adId) &&
+        isValidAdBanner(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        isAdmin() &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'type', 'placement', 'imageUrl', 'targetUrl',
+          'adSenseSlot', 'active', 'startDate', 'endDate', 'priority', 'updatedAt'
+        ]);
+
+      allow delete: if isVerifiedUser() && isValidId(adId) && isAdmin();
+    }
+  }
+}
